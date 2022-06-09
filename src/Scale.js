@@ -5,8 +5,7 @@ class Scale extends Component {
     super(props);
 
     this.USB_FILTERS = [
-      { vendorId: 0x0922, productId: 0x8003 }, // 10lb scale
-      { vendorId: 0x0922, productId: 0x8004 } // 25lb scale
+      { vendorId: 0x067b, productId: 0x2303 },
     ];
 
     this.UNIT_MODES = { 2: "g", 11: "oz" };
@@ -63,26 +62,36 @@ class Scale extends Component {
       0
     ].alternate.endpoints[0];
     let readLoop = () => {
+      let buffer = new ArrayBuffer("SIR");
       device
-        .transferIn(endpointNumber, packetSize)
+        // .controlTransferOut({
+        //   requestType: 'vendor',
+        //   recipient: 'interface',
+        //   request: 0x01,  // vendor-specific request: enable channels
+        //   value: 0x0013,  // 0b00010011 (channels 1, 2 and 5)
+        //   index: 0x0001   // Interface 1 is the recipient
+        // }).then(() => device.
+        .transferOut(endpointNumber, buffer)
+        .then(() => device.transferIn(endpointNumber, packetSize)
         .then(result => {
-          let data = new Uint8Array(result.data.buffer);
+          console.log(result);
+          // let data = new Uint8Array(result.data.buffer);
 
-          let weight = data[4] + 256 * data[5];
+          // let weight = data[4] + 256 * data[5];
 
-          const unit = this.UNIT_MODES[data[2]];
+          // const unit = this.UNIT_MODES[data[2]];
 
-          if (unit === "oz") {
-            // Use Math.pow to avoid floating point math.
-            weight /= Math.pow(10, 1);
-          }
+          // if (unit === "oz") {
+          //   // Use Math.pow to avoid floating point math.
+          //   weight /= Math.pow(10, 1);
+          // }
 
-          const scaleState = this.SCALE_STATES[data[1]];
+          // const scaleState = this.SCALE_STATES[data[1]];
 
           this.setState({
-            weight: weight,
-            unit: unit,
-            scaleState: scaleState
+            weight: 0,
+            unit: "g",
+            scaleState: 0
           });
 
           if (this.state.shouldRead) {
@@ -91,7 +100,7 @@ class Scale extends Component {
         })
         .catch(err => {
           console.error("USB Read Error", err);
-        });
+        }));
     };
     readLoop();
   }
